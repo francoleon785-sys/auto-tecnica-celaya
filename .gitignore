@@ -1,0 +1,7 @@
+# Archivos temporales o de prueba
+benchmark_load.py
+performance_test_screenshot.png
+*.log
+__pycache__/
+.DS_Store
+Thumbs.db
