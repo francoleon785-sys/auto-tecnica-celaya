@@ -6,6 +6,7 @@ setTimeout(function() {
 
 document.addEventListener('DOMContentLoaded', () => {
     // 1. REVEAL AL HACER SCROLL CON INTERSECTIONOBSERVER
+    // La sección de grúa usa las mismas clases .reveal que el resto del sitio.
     const reveals = document.querySelectorAll('.reveal');
     if ('IntersectionObserver' in window) {
       const observer = new IntersectionObserver((entries, obs) => {
@@ -36,10 +37,12 @@ document.addEventListener('DOMContentLoaded', () => {
         window.requestAnimationFrame(() => {
           const scrollY = window.pageYOffset || document.documentElement.scrollTop;
 
-          if (scrollY > 350) {
-            fabContainer.classList.add('is-visible');
-          } else {
-            fabContainer.classList.remove('is-visible');
+          if (fabContainer) {
+            if (scrollY > 350) {
+              fabContainer.classList.add('is-visible');
+            } else {
+              fabContainer.classList.remove('is-visible');
+            }
           }
 
           if (heroPhoto && scrollY < 900) {
