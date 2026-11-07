@@ -3,4 +3,4 @@ User-agent: *
 Allow: /
 
 # Sitemap
-Sitemap: https://autotecnicacelaya.com/sitemap.xml
+Sitemap: https://www.autotecnicaautomotriz.com/sitemap.xml
