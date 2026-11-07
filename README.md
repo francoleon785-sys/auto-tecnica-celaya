@@ -27,7 +27,9 @@
 ```text
 ├── images/             # Imágenes optimizadas en WebP y JPG de respaldo
 ├── index.html          # Versión principal de producción (con recursos locales)
-├── index-cdn.html      # Versión autónoma en un solo archivo con CDN público
+├── aviso-de-privacidad.html  # Aviso de privacidad (LFPDPPP)
+├── vercel.json         # Cabeceras de seguridad para Vercel
+├── .github/workflows/check.yml  # Revisiones automáticas en cada push
 ├── robots.txt          # Directivas de rastreo para motores de búsqueda
 ├── sitemap.xml         # Mapa del sitio para indexación
 └── README.md           # Documentación del proyecto

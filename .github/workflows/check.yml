@@ -1,0 +1,105 @@
+# Revisiones automáticas del sitio estático de Auto Técnica Automotriz.
+# Se ejecuta en cada push (cualquier rama) y también se puede lanzar a mano
+# desde la pestaña "Actions" de GitHub.
+name: Revisiones del sitio
+
+on:
+  push:
+  workflow_dispatch:
+
+# Solo necesita leer el código del repositorio.
+permissions:
+  contents: read
+
+env:
+  # Dominio oficial. Todas las revisiones lo usan desde aquí.
+  DOMINIO: https://www.autotecnicaautomotriz.com
+
+jobs:
+  revisar:
+    name: Validar HTML, sitemap, robots y dominio
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Descarga el código del repositorio.
+      - name: Descargar el repositorio
+        uses: actions/checkout@v4
+
+      # 2. Instala Node.js para poder ejecutar html-validate.
+      - name: Instalar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # 3. Valida todos los archivos .html con html-validate.
+      #    Las reglas se toman de .htmlvalidate.json (preset "standard").
+      - name: Validar HTML
+        run: |
+          # Lista todos los .html versionados en el repositorio.
+          mapfile -t archivos < <(git ls-files '*.html')
+          if [ "${#archivos[@]}" -eq 0 ]; then
+            echo "No se encontraron archivos HTML."
+            exit 1
+          fi
+          echo "Validando: ${archivos[*]}"
+          npx --yes html-validate@9 "${archivos[@]}"
+
+      # 4. Comprueba que sitemap.xml sea XML válido y que cada <loc>
+      #    pertenezca al dominio oficial.
+      - name: Revisar sitemap.xml
+        run: |
+          python3 - <<'PY'
+          import os
+          import sys
+          import xml.etree.ElementTree as ET
+
+          dominio = os.environ["DOMINIO"].rstrip("/") + "/"
+          ns = {"s": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+
+          # Si el XML está mal formado, ET.parse lanza un error y el paso falla.
+          try:
+              raiz = ET.parse("sitemap.xml").getroot()
+          except (ET.ParseError, FileNotFoundError) as error:
+              print(f"ERROR: sitemap.xml no es XML válido: {error}")
+              sys.exit(1)
+
+          urls = [loc.text.strip() for loc in raiz.findall("s:url/s:loc", ns) if loc.text]
+          if not urls:
+              print("ERROR: sitemap.xml no contiene ninguna URL en <loc>.")
+              sys.exit(1)
+
+          incorrectas = [u for u in urls if not u.startswith(dominio)]
+          for u in urls:
+              estado = "OK   " if u.startswith(dominio) else "MAL  "
+              print(f"{estado}{u}")
+
+          if incorrectas:
+              print(f"ERROR: {len(incorrectas)} URL(s) no usan el dominio {dominio}")
+              sys.exit(1)
+
+          print(f"sitemap.xml correcto: {len(urls)} URL(s) del dominio {dominio}")
+          PY
+
+      # 5. Comprueba que robots.txt apunte al sitemap del dominio oficial.
+      - name: Revisar robots.txt
+        run: |
+          esperado="Sitemap: ${DOMINIO}/sitemap.xml"
+          # Se ignoran retornos de carro (\r) por si el archivo usa saltos de línea de Windows.
+          if tr -d '\r' < robots.txt | grep -qxF "$esperado"; then
+            echo "robots.txt correcto: contiene '$esperado'"
+          else
+            echo "ERROR: robots.txt no contiene la línea exacta '$esperado'"
+            exit 1
+          fi
+
+      # 6. Falla si queda alguna referencia al dominio anterior.
+      #    La búsqueda distingue mayúsculas y minúsculas, revisa todos los
+      #    archivos de texto versionados y excluye este mismo workflow,
+      #    que necesita mencionar el texto para buscarlo.
+      - name: Buscar el dominio anterior
+        run: |
+          if git grep -n -I "autotecnicacelaya" -- . ':(exclude).github/workflows/check.yml'; then
+            echo "ERROR: se encontró el texto 'autotecnicacelaya' en los archivos de arriba."
+            exit 1
+          fi
+          echo "No hay referencias a 'autotecnicacelaya'."
